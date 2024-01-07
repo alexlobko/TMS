@@ -2,7 +2,8 @@ import random
 
 
 class Room:
-    def __init__(self, name):
+    def __init__(self, room_id, name):
+        self.room_id = room_id
         self.name = name
         self.doors = []
         self.content = {'key': round(random.random())}
@@ -31,7 +32,7 @@ class Door:
 class Player:
     def __init__(self, name, rooms):
         self.name = name
-        self.location = random.choice(rooms)
+        self.location = random.choice(list(rooms))
         self.hp = len(rooms)
         self.inventory = {'keys': 0}
 
@@ -81,35 +82,83 @@ class Player:
             print("Invalid door index.")
 
 
-room1 = Room("Room 1")
-room2 = Room("Room 2")
-room3 = Room("Room 3")
-room4 = Room("Room 4")
-room5 = Room("Room 5")
-room6 = Room("Room 6")
-rooms = [room1, room2, room3, room4, room5, room6]
-winning_room = room5
+def create_labyrinth(labyrinth_data):
+    rooms = {}
 
-door1 = Door(room1, room2)
-door2 = Door(room2, room3, True)
-door3 = Door(room1, room3)
-door4 = Door(room3, room4, True)
-door5 = Door(room2, room4)
-door6 = Door(room4, room5, True)
-door7 = Door(room2, room6, True)
+    # Create rooms
+    for room_data in labyrinth_data:
+        room_id = room_data["id"]
+        room_name = room_data["name"]
+        room = Room(room_id, room_name)
+        rooms[room_id] = room
 
-room1.add_door(door1)
-room1.add_door(door3)
-room2.add_door(door1)
-room2.add_door(door2)
-room2.add_door(door5)
-room2.add_door(door7)
-room3.add_door(door2)
-room3.add_door(door3)
-room3.add_door(door4)
-room4.add_door(door4)
-room4.add_door(door5)
-room4.add_door(door6)
+    doors = []
+    # Create doors
+    for room_data in labyrinth_data:
+        room_id = room_data["id"]
+        room = rooms[room_id]
+        door_ids = room_data["doors"]
+        for door_id in door_ids:
+            other_room = rooms[door_id]
+
+            # Check if the door is already created in the opposite direction
+            opposite_door = None
+            for other_door in other_room.doors:
+                if other_door.room2 == room:
+                    opposite_door = other_door
+                    break
+
+            # If the opposite door exists, use it instead of creating a new one
+            if opposite_door:
+                room.add_door(opposite_door)
+            else:
+                door = Door(room, other_room)
+                doors.append(door)
+                room.add_door(door)
+
+    for i in random.sample(doors, 3):
+        i.is_closed = True
+
+    return rooms
+
+
+# Example labyrinth data
+LEVEL1 = [
+    {
+        "id": "room-1",
+        "name": "Room 1",
+        "doors": ["room-2", "room-3"]
+    },
+    {
+        "id": "room-2",
+        "name": "Room 2",
+        "doors": ["room-1", "room-3", "room-4", "room-6"]
+    },
+    {
+        "id": "room-3",
+        "name": "Room 3",
+        "doors": ["room-1", "room-2", "room-4"]
+    },
+    {
+        "id": "room-4",
+        "name": "Room 4",
+        "doors": ["room-2", "room-3", "room-5"]
+    },
+    {
+        "id": "room-5",
+        "name": "Room 5",
+        "doors": []
+    },
+    {
+        "id": "room-6",
+        "name": "Room 6",
+        "doors": []
+    }
+]
+
+labyrinth = create_labyrinth(LEVEL1)
+rooms = labyrinth.values()
+winning_room = labyrinth['room-5']
 
 player = Player("Player", rooms)
 
